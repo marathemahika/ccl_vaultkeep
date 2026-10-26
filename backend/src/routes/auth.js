@@ -3,6 +3,15 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
 const { generateOwnerToken, authenticateOwner } = require('../middleware/auth');
 const { logEvent } = require('../services/auditService');
+const { rateLimit } = require('express-rate-limit');
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+});
 
 const router = express.Router();
 
@@ -116,7 +125,7 @@ router.post('/register', async (req, res) => {
  * POST /api/auth/login
  * Authenticate vault owner and issue a JWT token.
  */
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {

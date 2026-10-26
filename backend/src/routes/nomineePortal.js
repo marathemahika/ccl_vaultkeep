@@ -9,6 +9,15 @@ const {
 } = require('../services/cryptoService');
 const { downloadFromS3 } = require('../services/storageService');
 const { logEvent } = require('../services/auditService');
+const { rateLimit } = require('express-rate-limit');
+
+const nomineeCodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many code attempts. Please try again later.' },
+});
 
 const router = express.Router();
 
@@ -17,7 +26,7 @@ const router = express.Router();
  * Nominee claims their one-time access code to unlock documents.
  * Access is only permitted if the vault owner's account status is 'released'.
  */
-router.post('/verify-code', async (req, res) => {
+router.post('/verify-code', nomineeCodeLimiter, async (req, res) => {
   const { email, access_code } = req.body;
 
   if (!email || !access_code) {
