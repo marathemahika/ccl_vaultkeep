@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
 import Nominees from './pages/Nominees';
 import Settings from './pages/Settings';
+import CheckIn from './pages/CheckIn';
 import Activity from './pages/Activity';
 import Landing from './pages/Landing';
 import NomineeAccess from './pages/nominee/NomineeAccess';
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/nominees" element={<Nominees />} />
+        <Route path="/check-in" element={<CheckIn />} />
         <Route path="/activity" element={<Activity />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

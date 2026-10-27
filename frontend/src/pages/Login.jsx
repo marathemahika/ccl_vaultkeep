@@ -2,7 +2,33 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Alert from '../components/Alert';
-import Logo from '../components/Logo';
+import AuthShell from '../components/AuthShell';
+import { Icon } from '../components/UI';
+
+export function PasswordInput({ value, onChange, autoComplete, placeholder, minLength }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className="input-with-action">
+      <input
+        type={visible ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        minLength={minLength}
+        required
+      />
+      <button
+        type="button"
+        className="icon-button"
+        aria-label={visible ? 'Hide password' : 'Show password'}
+        onClick={() => setVisible(!visible)}
+      >
+        <Icon name="eye" size={16} />
+      </button>
+    </span>
+  );
+}
 
 export default function Login() {
   const { user, login, sessionMessage } = useAuth();
@@ -29,47 +55,53 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-page">
-      <form className="card auth-card" onSubmit={handleSubmit}>
-        <Link to="/"><Logo /></Link>
-        <h1>Log in to your vault</h1>
-        <p className="muted">Logging in also counts as a check-in.</p>
+    <AuthShell
+      promoEyebrow="Your legacy, protected"
+      promoTitle="What matters most,"
+      promoAccent="kept safe."
+      promoText="A private place for the important things your loved ones may one day need."
+    >
+      <span className="eyebrow">Welcome back</span>
+      <h2>Sign in to your vault</h2>
+      <p className="auth-intro">Signing in also counts as a check-in.</p>
 
-        <Alert type="warning">{!error && sessionMessage}</Alert>
-        <Alert type="error">{error}</Alert>
+      <Alert type="warning">{!error && sessionMessage}</Alert>
+      <Alert type="error">{error}</Alert>
 
-        <label>
-          Email
+      <form onSubmit={handleSubmit}>
+        <label className="field">
+          <span className="field-label">Email address</span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
+            placeholder="you@example.com"
             required
           />
         </label>
-        <label>
-          Password
-          <input
-            type="password"
+        <label className="field">
+          <span className="field-label">Password</span>
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
-            required
+            placeholder="At least 8 characters"
           />
         </label>
 
-        <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting ? 'Logging in…' : 'Log in'}
+        <button type="submit" className="button button-primary auth-submit" disabled={submitting}>
+          {submitting ? 'Signing in…' : <>Sign in <Icon name="arrow" size={16} /></>}
         </button>
-
-        <p className="auth-switch">
-          New to VaultKeep? <Link to="/register">Create an account</Link>
-        </p>
-        <p className="auth-switch">
-          Nominee with an access code? <Link to="/nominee">Go to the nominee portal</Link>
-        </p>
       </form>
-    </div>
+
+      <p className="auth-switch">
+        New to VaultKeep?<Link to="/register">Create an account</Link>
+      </p>
+      <p className="auth-switch">
+        Received an access code?<Link to="/nominee">Nominee portal</Link>
+      </p>
+      <div className="auth-security"><Icon name="shield" size={14} /> Protected with envelope encryption</div>
+    </AuthShell>
   );
 }

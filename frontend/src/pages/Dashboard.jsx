@@ -3,8 +3,70 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Alert from '../components/Alert';
-import StatusBadge from '../components/StatusBadge';
-import { formatDate, plural } from '../utils';
+import { Icon, SectionHeading, StatusBadge } from '../components/UI';
+import {
+  actionIcon,
+  actionLabel,
+  categoryLabel,
+  describeLog,
+  formatBytes,
+  formatDate,
+  plural,
+  relativeDay,
+} from '../utils';
+
+function StatusHero({ status, onCheckIn, checkingIn }) {
+  if (status.status === 'released') {
+    return (
+      <div className="status-hero status-hero-released">
+        <span className="status-hero-icon"><Icon name="lock" /></span>
+        <div>
+          <strong>Your vault has been released</strong>
+          <span>
+            The grace period ended {formatDate(status.accessReleasedAt)}. Your nominees can now
+            open the documents you assigned to them. Check-ins are no longer accepted.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (status.status === 'inactive') {
+    return (
+      <div className="status-hero status-hero-inactive">
+        <span className="status-hero-icon"><Icon name="bell" /></span>
+        <div>
+          <strong>You missed a check-in — your nominees have been notified</strong>
+          <span>
+            Documents will be released {formatDate(status.accessReleaseAt)}
+            {status.gracePeriodHoursRemaining != null &&
+              ` (about ${plural(status.gracePeriodHoursRemaining, 'hour')} left)`}
+            . Check in now to cancel the release.
+          </span>
+        </div>
+        <button className="button button-white" onClick={onCheckIn} disabled={checkingIn}>
+          {checkingIn ? 'Checking in…' : <>I&apos;m here <Icon name="arrow" size={15} /></>}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="status-hero">
+      <span className="status-hero-icon"><Icon name="check" /></span>
+      <div>
+        <strong>Your vault is active</strong>
+        <span>
+          Last checked in {formatDate(status.lastCheckinAt, false)} · Next check-in due{' '}
+          {formatDate(status.nextCheckinDueAt, false)} ({plural(status.daysRemaining, 'day')})
+        </span>
+      </div>
+      <button className="button button-white" onClick={onCheckIn} disabled={checkingIn}>
+        {checkingIn ? 'Checking in…' : <>Check in now <Icon name="arrow" size={15} /></>}
+      </button>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user, refreshUser } = useAuth();
@@ -27,7 +89,7 @@ export default function Dashboard() {
       setStatus(s);
       setDocuments(d.documents);
       setNominees(n.nominees);
-      setRecent(a.logs.slice(0, 6));
+      setRecent(a.logs.slice(0, 5));
     } catch (err) {
       setError(err.message);
     }
@@ -52,162 +114,147 @@ export default function Dashboard() {
   };
 
   if (!status) {
-    return error ? <Alert type="error">{error}</Alert> : <div className="page-loading">Loading…</div>;
+    return error ? <Alert type="error">{error}</Alert> : <div className="page-loading">Loading your vault…</div>;
   }
 
   const unassignedDocs = documents.filter((d) => d.assigned_nominees.length === 0).length;
-  const elapsedPct = Math.min(
-    100,
-    Math.max(0, 100 - (status.daysRemaining / status.checkinIntervalDays) * 100)
-  );
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   return (
     <div className="page">
-      <div className="page-header">
+      <section className="dashboard-welcome">
         <div>
-          <h1>Welcome back, {user.fullName.split(' ')[0]}</h1>
-          <p className="muted">Here&apos;s the state of your vault.</p>
+          <span className="eyebrow">{today}</span>
+          <h1>
+            Welcome back, {user.fullName.split(' ')[0]}. <em>All in one place.</em>
+          </h1>
+          <p>
+            {status.status === 'active'
+              ? unassignedDocs
+                ? `A little preparation goes a long way — ${plural(unassignedDocs, 'document')} still ${unassignedDocs === 1 ? 'needs' : 'need'} a nominee.`
+                : 'A little preparation goes a long way. Your vault is looking good.'
+              : 'Your inactivity plan has been triggered. Review the details below.'}
+          </p>
         </div>
-      </div>
+        <div className="welcome-art" aria-hidden="true">
+          <span className="sparkle">✳</span>
+          <div className="welcome-doc">
+            <span className="vault-lock small"><Icon name="lock" size={18} /></span>
+            <span className="vault-line" />
+            <span className="vault-line short" />
+          </div>
+        </div>
+      </section>
 
       <Alert type="success" onClose={() => setNotice('')}>{notice}</Alert>
       <Alert type="error" onClose={() => setError('')}>{error}</Alert>
 
-      {status.status === 'inactive' && (
-        <div className="banner banner-warning">
-          <h2>Your account has been flagged inactive</h2>
-          <p>
-            You missed your check-in window and your nominees have been notified. Unless you check
-            in, your released documents will become available to them on{' '}
-            <strong>{formatDate(status.accessReleaseAt)}</strong>
-            {status.gracePeriodHoursRemaining != null &&
-              ` (about ${plural(status.gracePeriodHoursRemaining, 'hour')} from now)`}
-            .
-          </p>
-          <button className="btn btn-primary" onClick={handleCheckIn} disabled={checkingIn}>
-            {checkingIn ? 'Checking in…' : "I'm here — cancel the release"}
-          </button>
-        </div>
-      )}
+      <StatusHero status={status} onCheckIn={handleCheckIn} checkingIn={checkingIn} />
 
-      {status.status === 'released' && (
-        <div className="banner banner-danger">
-          <h2>Your vault has been released</h2>
-          <p>
-            The grace period ended on <strong>{formatDate(status.accessReleasedAt)}</strong>.
-            Your nominees can now access the documents you assigned to them. Check-ins are no
-            longer accepted for this account.
-          </p>
+      <SectionHeading eyebrow="Your vault at a glance" title="Everything in its place" />
+      <div className="stat-grid">
+        <div className="surface-card stat-card">
+          <span className="stat-icon stat-violet"><Icon name="file" /></span>
+          <span className="stat-label">Documents</span>
+          <strong>{documents.length} <small>encrypted files</small></strong>
+          <Link to="/documents" className="inline-link">Manage documents <Icon name="arrow" size={13} /></Link>
         </div>
-      )}
+        <div className="surface-card stat-card">
+          <span className="stat-icon stat-peach"><Icon name="users" /></span>
+          <span className="stat-label">Nominees</span>
+          <strong>{nominees.length} <small>trusted people</small></strong>
+          <Link to="/nominees" className="inline-link">Manage nominees <Icon name="arrow" size={13} /></Link>
+        </div>
+        <div className="surface-card stat-card">
+          <span className="stat-icon stat-green"><Icon name="clock" /></span>
+          <span className="stat-label">Next check-in</span>
+          <strong className="stat-date">
+            {status.status === 'active' ? formatDate(status.nextCheckinDueAt, false) : '—'}
+          </strong>
+          <Link to="/check-in" className="inline-link">Review your schedule <Icon name="arrow" size={13} /></Link>
+        </div>
+        <div className="surface-card stat-card">
+          <span className="stat-icon stat-blue"><Icon name="shield" /></span>
+          <span className="stat-label">Vault status</span>
+          <strong className="stat-date"><StatusBadge status={status.status} /></strong>
+          <span className="stat-foot">
+            <i className={status.status === 'active' ? '' : 'warn'} />
+            {status.status === 'active' ? 'Release workflow not triggered' : 'Release workflow triggered'}
+          </span>
+        </div>
+      </div>
 
-      <div className="grid grid-2">
-        <section className="card checkin-card">
-          <div className="card-title-row">
-            <h2>Check-in</h2>
-            <StatusBadge status={status.status} />
+      <div className="dashboard-columns">
+        <section className="surface-card panel">
+          <div className="panel-head">
+            <div>
+              <span className="eyebrow">Recently added</span>
+              <h2>Your documents</h2>
+            </div>
+            <Link to="/documents" className="inline-link strong">View all <Icon name="arrow" size={14} /></Link>
           </div>
-
-          {status.status === 'active' ? (
-            <>
-              <div className="countdown">
-                <span className="countdown-number">{status.daysRemaining}</span>
-                <span className="countdown-label">
-                  {status.daysRemaining === 1 ? 'day' : 'days'} until your next check-in is due
-                </span>
-              </div>
-              <div className="progress" aria-hidden="true">
-                <div
-                  className={`progress-bar ${elapsedPct > 80 ? 'progress-bar-warn' : ''}`}
-                  style={{ width: `${elapsedPct}%` }}
-                />
-              </div>
-            </>
+          {documents.length === 0 ? (
+            <p className="muted">Nothing here yet.</p>
           ) : (
-            <p className="muted">Automatic monitoring is paused while the account is {status.status}.</p>
+            <ul className="doc-list">
+              {documents.slice(0, 4).map((doc) => (
+                <li key={doc.id}>
+                  <span className="doc-icon"><Icon name="file" size={17} /></span>
+                  <span className="doc-copy">
+                    <strong>{doc.title}</strong>
+                    <small>{categoryLabel(doc.category)} · {formatBytes(doc.size_bytes)}</small>
+                  </span>
+                  <span className="doc-lock"><Icon name="lock" size={13} /> Encrypted</span>
+                </li>
+              ))}
+            </ul>
           )}
-
-          <dl className="details">
-            <dt>Last check-in</dt>
-            <dd>{formatDate(status.lastCheckinAt)}</dd>
-            {status.status === 'active' && (
-              <>
-                <dt>Next due</dt>
-                <dd>{formatDate(status.nextCheckinDueAt)}</dd>
-              </>
-            )}
-            <dt>Interval / grace</dt>
-            <dd>
-              {plural(status.checkinIntervalDays, 'day')} / {plural(status.gracePeriodDays, 'day')}{' '}
-              <Link to="/settings">Change</Link>
-            </dd>
-          </dl>
-
-          {status.status === 'active' && (
-            <button
-              className="btn btn-primary btn-block"
-              onClick={handleCheckIn}
-              disabled={checkingIn}
-            >
-              {checkingIn ? 'Checking in…' : 'Check in now'}
-            </button>
-          )}
+          <Link to="/documents" className="add-row">
+            <span className="add-row-icon"><Icon name="plus" /></span>
+            <span><strong>Add another document</strong><small>Encrypted with its own KMS data key</small></span>
+          </Link>
         </section>
 
-        <section className="card">
-          <h2>Vault summary</h2>
-          <div className="stats">
-            <Link to="/documents" className="stat">
-              <span className="stat-value">{documents.length}</span>
-              <span className="stat-label">Encrypted documents</span>
-            </Link>
-            <Link to="/nominees" className="stat">
-              <span className="stat-value">{nominees.length}</span>
-              <span className="stat-label">Nominees</span>
-            </Link>
+        <section className="surface-card panel">
+          <div className="panel-head">
+            <div>
+              <span className="eyebrow">Audit trail</span>
+              <h2>Recent activity</h2>
+            </div>
+            <Icon name="activity" className="muted-icon" />
           </div>
-
-          <ul className="checklist">
-            <li className={documents.length ? 'done' : ''}>
-              {documents.length ? 'Documents uploaded' : <Link to="/documents">Upload your first document</Link>}
-            </li>
-            <li className={nominees.length ? 'done' : ''}>
-              {nominees.length ? 'Nominees added' : <Link to="/nominees">Add a nominee</Link>}
-            </li>
-            <li className={documents.length && !unassignedDocs ? 'done' : ''}>
-              {documents.length && !unassignedDocs ? (
-                'Every document is assigned to a nominee'
-              ) : (
-                <Link to="/nominees">
-                  {unassignedDocs
-                    ? `${plural(unassignedDocs, 'document')} not released to anyone`
-                    : 'Assign documents to nominees'}
-                </Link>
-              )}
-            </li>
-          </ul>
+          {recent.length === 0 ? (
+            <p className="muted">No activity yet.</p>
+          ) : (
+            <ul className="timeline-list">
+              {recent.map((log) => (
+                <li key={log.id}>
+                  <span className={`timeline-icon ${log.success ? '' : 'fail'} actor-${log.actor_type}`}>
+                    <Icon name={actionIcon(log.action)} size={15} />
+                  </span>
+                  <span>
+                    <strong>{actionLabel(log.action)}</strong>
+                    {describeLog(log) && <small>{describeLog(log)}</small>}
+                    <small className="faint">{relativeDay(log.occurred_at)}</small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link to="/activity" className="inline-link strong center">View full activity log <Icon name="arrow" size={14} /></Link>
         </section>
       </div>
 
-      <section className="card">
-        <div className="card-title-row">
-          <h2>Recent activity</h2>
-          <Link to="/activity">View all</Link>
-        </div>
-        {recent.length === 0 ? (
-          <p className="muted">No activity yet.</p>
-        ) : (
-          <ul className="activity-list">
-            {recent.map((log) => (
-              <li key={log.id}>
-                <span className={`dot ${log.success ? 'dot-ok' : 'dot-fail'}`} />
-                <code>{log.action}</code>
-                <span className="muted">{formatDate(log.occurred_at)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {unassignedDocs > 0 && (
+        <Link to="/nominees" className="gentle-reminder">
+          <span>✳</span>
+          <span>
+            <strong>A gentle reminder</strong> — {plural(unassignedDocs, 'document')} {unassignedDocs === 1 ? 'is' : 'are'} not
+            released to anyone yet. Choose a nominee so nothing is left behind.
+          </span>
+          <Icon name="arrow" size={16} />
+        </Link>
+      )}
     </div>
   );
 }

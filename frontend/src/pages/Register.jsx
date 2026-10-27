@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Alert from '../components/Alert';
-import Logo from '../components/Logo';
+import AuthShell from '../components/AuthShell';
+import { Icon } from '../components/UI';
+import { PasswordInput } from './Login';
 
 export default function Register() {
   const { user, register } = useAuth();
@@ -50,87 +52,61 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-page">
-      <form className="card auth-card" onSubmit={handleSubmit}>
-        <Link to="/"><Logo /></Link>
-        <h1>Create your vault</h1>
+    <AuthShell
+      promoEyebrow="Start in minutes"
+      promoTitle="Prepare today,"
+      promoAccent="for peace of mind tomorrow."
+      promoText="Store important documents, choose who receives them, and decide when."
+    >
+      <span className="eyebrow">Create account</span>
+      <h2>Set up your vault</h2>
+      <p className="auth-intro">You can change your check-in rules at any time.</p>
 
-        <Alert type="error">{error}</Alert>
+      <Alert type="error">{error}</Alert>
 
-        <label>
-          Full name
+      <form onSubmit={handleSubmit}>
+        <label className="field">
+          <span className="field-label">Full name</span>
           <input value={form.full_name} onChange={update('full_name')} autoComplete="name" required />
         </label>
-        <label>
-          Email
-          <input type="email" value={form.email} onChange={update('email')} autoComplete="email" required />
+        <label className="field">
+          <span className="field-label">Email address</span>
+          <input type="email" value={form.email} onChange={update('email')} autoComplete="email" placeholder="you@example.com" required />
         </label>
         <div className="form-row">
-          <label>
-            Password
-            <input
-              type="password"
-              value={form.password}
-              onChange={update('password')}
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
+          <label className="field">
+            <span className="field-label">Password</span>
+            <PasswordInput value={form.password} onChange={update('password')} autoComplete="new-password" minLength={8} />
           </label>
-          <label>
-            Confirm password
-            <input
-              type="password"
-              value={form.confirm}
-              onChange={update('confirm')}
-              autoComplete="new-password"
-              required
-            />
+          <label className="field">
+            <span className="field-label">Confirm password</span>
+            <PasswordInput value={form.confirm} onChange={update('confirm')} autoComplete="new-password" />
           </label>
         </div>
-
-        <fieldset>
-          <legend>Inactivity rules</legend>
-          <div className="form-row">
-            <label>
-              Check-in interval (days)
-              <input
-                type="number"
-                min={1}
-                max={365}
-                value={form.checkin_interval_days}
-                onChange={update('checkin_interval_days')}
-                required
-              />
-            </label>
-            <label>
-              Grace period (days)
-              <input
-                type="number"
-                min={0}
-                max={90}
-                value={form.grace_period_days}
-                onChange={update('grace_period_days')}
-                required
-              />
-            </label>
-          </div>
-          <p className="hint">
-            If you don&apos;t check in for {form.checkin_interval_days || '?'} days, your nominees
-            are notified. If you still haven&apos;t checked in {form.grace_period_days || 0} days
-            later, they receive access to the documents you released to them. You can change this
-            later in Settings.
-          </p>
-        </fieldset>
-
-        <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting ? 'Creating account…' : 'Create account'}
-        </button>
-
-        <p className="auth-switch">
-          Already have an account? <Link to="/login">Log in</Link>
+        <div className="form-row">
+          <label className="field">
+            <span className="field-label">Check in every (days)</span>
+            <input type="number" min={1} max={365} value={form.checkin_interval_days} onChange={update('checkin_interval_days')} required />
+          </label>
+          <label className="field">
+            <span className="field-label">Grace period (days)</span>
+            <input type="number" min={0} max={90} value={form.grace_period_days} onChange={update('grace_period_days')} required />
+          </label>
+        </div>
+        <p className="field-hint register-hint">
+          Miss a check-in for {form.checkin_interval_days || '?'} days and your nominees are
+          notified. {form.grace_period_days || 0} days later they receive the documents you
+          released to them.
         </p>
+
+        <button type="submit" className="button button-primary auth-submit" disabled={submitting}>
+          {submitting ? 'Creating your vault…' : <>Create account <Icon name="arrow" size={16} /></>}
+        </button>
       </form>
-    </div>
+
+      <p className="auth-switch">
+        Already have an account?<Link to="/login">Sign in</Link>
+      </p>
+    </AuthShell>
   );
 }

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, tokens } from '../../api/client';
-import Alert from '../../components/Alert';
-import Logo from '../../components/Logo';
+import AuthShell from '../../components/AuthShell';
+import { Icon } from '../../components/UI';
 
 // The backend answers 403 with a specific message while the owner is still
 // active or inside the grace period; show those as status notices, not errors.
@@ -11,7 +11,7 @@ function classify(err) {
     return {
       type: 'warning',
       title: 'Access is not released yet',
-      body: `${err.message} If the owner checks in before the grace period ends, the release is cancelled. Keep your code; you can use it once access is granted.`,
+      body: `${err.message} If the owner checks in before the grace period ends, the release is cancelled. Keep your code — it will work once access is granted.`,
     };
   }
   if (err.status === 403) {
@@ -47,37 +47,39 @@ export default function NomineeAccess() {
   };
 
   return (
-    <div className="auth-page nominee-theme">
-      <form className="card auth-card" onSubmit={handleSubmit}>
-        <Link to="/"><Logo /></Link>
-        <h1>Nominee access</h1>
-        <p className="muted">
-          You were named as a nominee by a VaultKeep user. When their account becomes inactive you
-          receive a notification with a one-time access code (for example <code>VK-1A2B3C4D</code>).
-          Once the grace period ends, enter it here to view the documents released to you.
-        </p>
+    <AuthShell
+      variant="auth-nominee"
+      promoEyebrow="Nominee portal"
+      promoTitle="A shared space,"
+      promoAccent="for when it matters."
+      promoText="Someone who trusts you chose to leave important documents in your care. Use the one-time code from your notification to open them."
+    >
+      <span className="eyebrow">Nominee access</span>
+      <h2>Open released documents</h2>
+      <p className="auth-intro">
+        Your code (for example <code>VK-1A2B3C4D</code>) arrives when the owner misses a check-in.
+        It unlocks documents once the grace period has ended.
+      </p>
 
-        {result && (
-          <div className={`alert alert-${result.type}`} role="status">
-            <span>
-              {result.title && <strong>{result.title}. </strong>}
-              {result.body}
-            </span>
-          </div>
-        )}
+      {result && (
+        <div className={`alert alert-${result.type}`} role="status">
+          <span className="alert-icon">
+            <Icon name={result.type === 'warning' ? 'clock' : result.type === 'info' ? 'shield' : 'alert'} size={16} />
+          </span>
+          <span className="alert-body">
+            {result.title && <strong>{result.title}. </strong>}
+            {result.body}
+          </span>
+        </div>
+      )}
 
-        <label>
-          Your email address
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
+      <form onSubmit={handleSubmit}>
+        <label className="field">
+          <span className="field-label">Your email address</span>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="you@example.com" required />
         </label>
-        <label>
-          One-time access code
+        <label className="field">
+          <span className="field-label">One-time access code</span>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -86,20 +88,18 @@ export default function NomineeAccess() {
             autoComplete="one-time-code"
             required
           />
+          <small className="field-hint">The code works once. Your session then lasts up to 2 hours.</small>
         </label>
 
-        <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting ? 'Verifying…' : 'Unlock documents'}
+        <button type="submit" className="button button-primary auth-submit" disabled={submitting}>
+          {submitting ? 'Verifying…' : <>Unlock documents <Icon name="arrow" size={16} /></>}
         </button>
-
-        <Alert type="info">
-          The code works only once. Every document you open is recorded in the owner&apos;s audit log.
-        </Alert>
-
-        <p className="auth-switch">
-          Are you a vault owner? <Link to="/login">Log in here</Link>
-        </p>
       </form>
-    </div>
+
+      <p className="auth-switch">
+        Own a vault?<Link to="/login">Sign in here</Link>
+      </p>
+      <div className="auth-security"><Icon name="activity" size={14} /> Every document you open is recorded in an audit log</div>
+    </AuthShell>
   );
 }

@@ -30,3 +30,48 @@ export function formatDate(value, withTime = true) {
 export function plural(n, word) {
   return `${n} ${word}${Number(n) === 1 ? '' : 's'}`;
 }
+
+// Human-readable labels (and icons) for the audit actions the backend writes.
+export const ACTIONS = {
+  'auth.register': ['Account created', 'check'],
+  'auth.login.success': ['Signed in', 'logout'],
+  'auth.login.failed': ['Failed sign-in attempt', 'alert'],
+  'auth.login.locked': ['Sign-in blocked (account locked)', 'lock'],
+  'auth.password_changed': ['Password changed', 'key'],
+  'checkin.manual': ['You checked in', 'check'],
+  'checkin.settings_updated': ['Check-in rules changed', 'clock'],
+  'document.upload': ['Document added', 'upload'],
+  'document.download': ['Document downloaded', 'download'],
+  'document.delete': ['Document deleted', 'trash'],
+  'nominee.create': ['Nominee added', 'users'],
+  'nominee.update': ['Nominee updated', 'edit'],
+  'nominee.delete': ['Nominee removed', 'trash'],
+  'nominee.releases_updated': ['Released documents changed', 'file'],
+  'nominee.verify_code.failed': ['Nominee entered a wrong access code', 'alert'],
+  'nominee.access_claimed': ['Nominee unlocked access', 'key'],
+  'nominee.document.download': ['Nominee downloaded a document', 'download'],
+  'lifecycle.flag_inactive': ['Check-in missed — nominees notified', 'bell'],
+  'lifecycle.release_vault': ['Grace period ended — vault released', 'lock'],
+};
+
+export function actionLabel(action) {
+  return ACTIONS[action]?.[0] || action;
+}
+
+export function actionIcon(action) {
+  return ACTIONS[action]?.[1] || 'activity';
+}
+
+export function describeLog(log) {
+  const d = log.details || {};
+  return d.title || d.filename || d.fullName || d.email || d.nomineeEmail || d.reason || '';
+}
+
+export function relativeDay(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days <= 0 && new Date().toDateString() === d.toDateString()) return 'Today';
+  if (days <= 1) return 'Yesterday';
+  return formatDate(value, false);
+}
